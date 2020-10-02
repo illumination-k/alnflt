@@ -1,8 +1,11 @@
+use structopt::clap::arg_enum;
 use structopt::{clap, StructOpt};
+
 use anyhow::Result;
 use atty;
 
-use rust_htslib::{bam, bam::Read};
+use rust_htslib::{bam, bam::Read,};
+use bio_types::strand::{ReqStrand};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "alnflt")]
@@ -15,15 +18,27 @@ pub struct Opt {
     pub threads: usize,
     #[structopt(short = "o", long = "out")]
     pub output: Option<String>,
+    #[structopt(long = "filterStrand", possible_values(&Strand::variants()))]
+    pub filter_strand: Option<Strand>,
+    #[structopt(long = "minMappingQuality", value_name="INT")]
+    pub min_mapping_quality: Option<u8>,
     #[structopt(long = "minInsertSize", value_name="INT")]
     pub min_insertsize: Option<i64>,
+    #[structopt(long = "maxInsertSize", value_name="INT")]
+    pub max_insertsize: Option<i64>,
 }
 
+arg_enum! {
+    #[derive(Debug)]
+    pub enum Strand {
+        Forward,
+        Reverse,
+    }
+}
 
 fn is_stdin(input: Option<&String>) -> bool {
     let is_request = match input {
         Some(i) if i == "-" => true,
-        None => true,
         _ => false,
     };
 
@@ -48,13 +63,10 @@ fn main() -> Result<()> {
     };
 
     // set reader
-    // let mut bam = bam::Reader::from_path(input)?;
     bam.set_threads(opt.threads)?;
 
     // set writer
     let header = bam::Header::from_template(&bam.header());
-    // let output = std::path::PathBuf::from(opt.output.unwrap());
-    // let mut writer = bam::Writer::from_path(output, &header, bam::Format::BAM)?;
 
     let mut writer = match opt.output {
         Some(output) => {
@@ -67,13 +79,47 @@ fn main() -> Result<()> {
 
     for (i, _r) in bam.records().enumerate() {
         if i == 10 { break; }
-        let r = _r?;
-        let insertsize = r.insert_size();
+        let mut r = _r?;
+
+        // mapping quality
+        match &opt.min_mapping_quality {
+            Some(min_mapping_quality) if &r.mapq() < min_mapping_quality => {continue;},
+            _ => (),
+        }
+
+        // strand
+        match &opt.filter_strand {
+            Some(strand) => {
+                match *strand {
+                    Strand::Forward => {
+                        match &r.strand() {
+                            ReqStrand::Forward => (),
+                            ReqStrand::Reverse => {continue;},
+                        }
+                    },
+                    Strand::Reverse => {
+                        match &r.strand() {
+                            ReqStrand::Forward => {continue;},
+                            ReqStrand::Reverse => (),
+                        }
+                    },
+                }
+            },
+            None => (),
+        }
+
+        // insertsize
+        let insertsize = r.insert_size().abs();
         
-        match opt.min_insertsize {
-            Some(min_insertsize) if insertsize < min_insertsize => {continue;},
+        match &opt.min_insertsize {
+            Some(min_insertsize) if insertsize < *min_insertsize => {continue;},
             _ => (),
         };
+
+        match &opt.max_insertsize {
+            Some(max_insertsize) if insertsize > *max_insertsize => {continue;},
+            _ => (),
+        }
 
         writer.write(&r)?;
     }

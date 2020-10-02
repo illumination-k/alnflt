@@ -9,5 +9,6 @@ edition = "2018"
 [dependencies]
 structopt = "0.3"
 rust-htslib = "*"
+bio-types = "*"
 atty="0.2"
 anyhow = "1.0"
