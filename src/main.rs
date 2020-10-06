@@ -14,7 +14,7 @@ use bio_types::strand::{ReqStrand};
 pub struct Opt {
     #[structopt(name = "INPUT")]
     pub input: Option<String>,
-    #[structopt(short = "t", long = "threds", default_value="1", value_name="INT")]
+    #[structopt(short = "t", long = "threads", default_value="1", value_name="INT")]
     pub threads: usize,
     #[structopt(short = "o", long = "out")]
     pub output: Option<String>,
