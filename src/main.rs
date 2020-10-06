@@ -4,8 +4,8 @@ use structopt::{clap, StructOpt};
 use anyhow::Result;
 use atty;
 
-use rust_htslib::{bam, bam::Read,};
-use bio_types::strand::{ReqStrand};
+use bio_types::strand::ReqStrand;
+use rust_htslib::{bam, bam::Read};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "alnflt")]
@@ -14,17 +14,17 @@ use bio_types::strand::{ReqStrand};
 pub struct Opt {
     #[structopt(name = "INPUT")]
     pub input: Option<String>,
-    #[structopt(short = "t", long = "threads", default_value="1", value_name="INT")]
+    #[structopt(short = "t", long = "threads", default_value = "1", value_name = "INT")]
     pub threads: usize,
     #[structopt(short = "o", long = "out")]
     pub output: Option<String>,
     #[structopt(long = "filterStrand", possible_values(&Strand::variants()))]
     pub filter_strand: Option<Strand>,
-    #[structopt(long = "minMappingQuality", value_name="INT")]
+    #[structopt(long = "minMappingQuality", value_name = "INT")]
     pub min_mapping_quality: Option<u8>,
-    #[structopt(long = "minInsertSize", value_name="INT")]
+    #[structopt(long = "minInsertSize", value_name = "INT")]
     pub min_insertsize: Option<i64>,
-    #[structopt(long = "maxInsertSize", value_name="INT")]
+    #[structopt(long = "maxInsertSize", value_name = "INT")]
     pub max_insertsize: Option<i64>,
 }
 
@@ -43,7 +43,7 @@ fn is_stdin(input: Option<&String>) -> bool {
     };
 
     let is_pipe = !atty::is(atty::Stream::Stdin);
-    
+
     is_request || is_pipe
 }
 
@@ -72,52 +72,58 @@ fn main() -> Result<()> {
         Some(output) => {
             let out_path = std::path::PathBuf::from(output);
             bam::Writer::from_path(out_path, &header, bam::Format::BAM)?
-        },
-        None => bam::Writer::from_stdout(&header, bam::Format::BAM)?
+        }
+        None => bam::Writer::from_stdout(&header, bam::Format::BAM)?,
     };
     writer.set_threads(opt.threads)?;
 
     for (i, _r) in bam.records().enumerate() {
-        if i == 10 { break; }
+        if i == 10 {
+            break;
+        }
         let mut r = _r?;
 
         // mapping quality
         match &opt.min_mapping_quality {
-            Some(min_mapping_quality) if &r.mapq() < min_mapping_quality => {continue;},
+            Some(min_mapping_quality) if &r.mapq() < min_mapping_quality => {
+                continue;
+            }
             _ => (),
         }
 
         // strand
         match &opt.filter_strand {
-            Some(strand) => {
-                match *strand {
-                    Strand::Forward => {
-                        match &r.strand() {
-                            ReqStrand::Forward => (),
-                            ReqStrand::Reverse => {continue;},
-                        }
-                    },
-                    Strand::Reverse => {
-                        match &r.strand() {
-                            ReqStrand::Forward => {continue;},
-                            ReqStrand::Reverse => (),
-                        }
-                    },
-                }
+            Some(strand) => match *strand {
+                Strand::Forward => match &r.strand() {
+                    ReqStrand::Forward => (),
+                    ReqStrand::Reverse => {
+                        continue;
+                    }
+                },
+                Strand::Reverse => match &r.strand() {
+                    ReqStrand::Forward => {
+                        continue;
+                    }
+                    ReqStrand::Reverse => (),
+                },
             },
             None => (),
         }
 
         // insertsize
         let insertsize = r.insert_size().abs();
-        
+
         match &opt.min_insertsize {
-            Some(min_insertsize) if insertsize < *min_insertsize => {continue;},
+            Some(min_insertsize) if insertsize < *min_insertsize => {
+                continue;
+            }
             _ => (),
         };
 
         match &opt.max_insertsize {
-            Some(max_insertsize) if insertsize > *max_insertsize => {continue;},
+            Some(max_insertsize) if insertsize > *max_insertsize => {
+                continue;
+            }
             _ => (),
         }
 
