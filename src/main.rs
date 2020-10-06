@@ -2,7 +2,7 @@ use structopt::clap::arg_enum;
 use structopt::{clap, StructOpt};
 
 use anyhow::Result;
-use atty;
+use atty::Stream;
 
 use bio_types::strand::ReqStrand;
 use rust_htslib::{bam, bam::Read};
@@ -42,7 +42,7 @@ fn is_stdin(input: Option<&String>) -> bool {
         _ => false,
     };
 
-    let is_pipe = !atty::is(atty::Stream::Stdin);
+    let is_pipe = !atty::is(Stream::Stdin);
 
     is_request || is_pipe
 }
