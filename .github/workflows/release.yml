@@ -8,7 +8,23 @@ on:
 jobs:
   build:
     name: Release binary
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: alnflt
+            asset_name: alnflt-x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: alnflt
+            asset_name: alnflt-x86_64-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: alnflt
+            asset_name: alnflt-x86_64-apple-darwin
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -20,22 +36,22 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install system dependencies
-        run: |
-            sudo apt-get install --yes zlib1g-dev libbz2-dev musl musl-dev musl-tools clang libc6-dev
+      # - name: Install system dependencies
+      #   run: |
+      #       sudo apt-get install --yes zlib1g-dev libbz2-dev musl musl-dev musl-tools clang libc6-dev
 
       - name: Test musl build with all features
         uses: actions-rs/cargo@v1
         with:
           use-cross: true 
           command: build
-          args: --release --target x86_64-unknown-linux-musl --all-features --verbose
+          args: --release --target ${{ matrix.target }} --all-features --verbose
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@2.1.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/x86_64-unknown-linux-musl/release/alnflt
-          asset_name: alnflt_x86_64-unknown-linux-musl
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          asset_name: ${{ matrix.asset_name }}
           tag: ${{ github.ref }}
           overwrite: true
