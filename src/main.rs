@@ -18,6 +18,8 @@ pub struct Opt {
     pub threads: usize,
     #[structopt(short = "o", long = "out", help = "The file to write results to. These are the alignments or fragments that pass the filtering criteria.")]
     pub output: Option<String>,
+    #[structopt(short = "r", long = "ref")]
+    pub reference: Option<String>,
     #[structopt(long = "outputFormat", possible_values(&Format::variants()))]
     pub output_format: Format,
     #[structopt(long = "filterStrand", possible_values(&Strand::variants()), help = "Selects RNA-seq reads (single-end or paired-end) in the given strand.")]
