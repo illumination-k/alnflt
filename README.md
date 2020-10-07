@@ -1,3 +1,3 @@
-# Filter tool for sam/bam format
+# Filter tool for SAM/BAM/CRAM format
 
 Inspired by alignmentSieves in deeptools

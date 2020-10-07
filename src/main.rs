@@ -16,15 +16,17 @@ pub struct Opt {
     pub input: Option<String>,
     #[structopt(short = "t", long = "threads", default_value = "1", value_name = "INT")]
     pub threads: usize,
-    #[structopt(short = "o", long = "out")]
+    #[structopt(short = "o", long = "out", help = "The file to write results to. These are the alignments or fragments that pass the filtering criteria.")]
     pub output: Option<String>,
-    #[structopt(long = "filterStrand", possible_values(&Strand::variants()))]
+    #[structopt(long = "outputFormat", possible_values(&Format::variants()))]
+    pub output_format: Format,
+    #[structopt(long = "filterStrand", possible_values(&Strand::variants()), help = "Selects RNA-seq reads (single-end or paired-end) in the given strand.")]
     pub filter_strand: Option<Strand>,
-    #[structopt(long = "minMappingQuality", value_name = "INT")]
+    #[structopt(long = "minMappingQuality", value_name = "INT", help = "If set, only reads that have a mapping quality score of at least this are considered.")]
     pub min_mapping_quality: Option<u8>,
-    #[structopt(long = "minInsertSize", value_name = "INT")]
+    #[structopt(long = "minInsertSize", value_name = "INT", help = "The minimum fragment length needed for pair inclusion.")]
     pub min_insertsize: Option<i64>,
-    #[structopt(long = "maxInsertSize", value_name = "INT")]
+    #[structopt(long = "maxInsertSize", value_name = "INT", help = "The maximum fragment length needed for pair inclusion.")]
     pub max_insertsize: Option<i64>,
 }
 
@@ -33,6 +35,15 @@ arg_enum! {
     pub enum Strand {
         Forward,
         Reverse,
+    }
+}
+
+arg_enum! {
+    #[derive(Debug)]
+    pub enum Format {
+        SAM,
+        BAM,
+        CRAM,
     }
 }
 
